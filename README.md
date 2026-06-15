@@ -61,7 +61,13 @@ Alternatively, just double-click the included `Play_TicTacToe.bat` file to silen
 
 ## 📸 Screenshots
 
-*(You can add screenshots of your sleek UI here later!)*
+<img width="1919" height="940" alt="image" src="https://github.com/user-attachments/assets/a76fca11-704c-42c9-8614-e928fdb2d513" />
+<img width="1919" height="936" alt="image" src="https://github.com/user-attachments/assets/f4aa843a-3a9d-466d-bb7b-eaa614139840" />
+<img width="1919" height="934" alt="image" src="https://github.com/user-attachments/assets/c8ed1b09-6df5-41f1-a403-27e42700ccbb" />
+
+
+
+
 
 ---
 Developed as an online multiplayer project!
