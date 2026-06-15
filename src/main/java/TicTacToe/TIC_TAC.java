@@ -33,6 +33,7 @@ public class TIC_TAC extends JFrame {
     private JLabel p1NameLabel;
     private JLabel p2NameLabel;
     private OutlinedRoundedButton playAgainBtn;
+    private RoundedButton goHomeBtn;
     
     private WebSocket webSocket;
     private String mySymbol;
@@ -254,19 +255,38 @@ public class TIC_TAC extends JFrame {
         playAgainBtn = new OutlinedRoundedButton("Play Again", 15, new Color(139, 92, 246));
         playAgainBtn.setBackground(new Color(15, 23, 42)); // Transparent essentially
         playAgainBtn.setForeground(new Color(139, 92, 246));
-        playAgainBtn.setFont(new Font("SansSerif", Font.BOLD, 16));
-        playAgainBtn.setPreferredSize(new Dimension(200, 45));
+        playAgainBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
+        playAgainBtn.setPreferredSize(new Dimension(140, 40));
         playAgainBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         playAgainBtn.setVisible(false);
         playAgainBtn.addActionListener(e -> {
             if (webSocket != null) {
-                webSocket.sendText("{\"type\":\"reset\"}", true);
+                webSocket.sendText("{\"type\":\"play_again\"}", true);
+                playAgainBtn.setText("Waiting...");
+                playAgainBtn.setEnabled(false);
             }
         });
         
-        JPanel bottomPanel = new JPanel();
+        goHomeBtn = new RoundedButton("Go Home", 15);
+        goHomeBtn.setBackground(new Color(239, 68, 68));
+        goHomeBtn.setForeground(Color.WHITE);
+        goHomeBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
+        goHomeBtn.setPreferredSize(new Dimension(140, 40));
+        goHomeBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        goHomeBtn.setVisible(false);
+        goHomeBtn.addActionListener(e -> {
+            if (webSocket != null) {
+                webSocket.sendText("{\"type\":\"leave_match\"}", true);
+                webSocket.abort();
+            }
+            cardLayout.show(mainPanel, "login");
+            resetButtons();
+        });
+        
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         bottomPanel.setOpaque(false);
         bottomPanel.add(playAgainBtn);
+        bottomPanel.add(goHomeBtn);
         
         inner.add(topContainer, BorderLayout.NORTH);
         inner.add(gridPanel, BorderLayout.CENTER);
@@ -356,6 +376,9 @@ public class TIC_TAC extends JFrame {
     private void resetBoard() {
         gameActive = true;
         playAgainBtn.setVisible(false);
+        goHomeBtn.setVisible(false);
+        playAgainBtn.setText("Play Again");
+        playAgainBtn.setEnabled(true);
         for (int i = 0; i < 9; i++) {
             grid[i] = null;
             buttons[i].setText("");
@@ -395,6 +418,7 @@ public class TIC_TAC extends JFrame {
                 oppScoreLabel.setText(String.valueOf(oppScore));
             }
             playAgainBtn.setVisible(true);
+            goHomeBtn.setVisible(true);
         } else {
             boolean tie = true;
             for (String s : grid) if (s == null) tie = false;
@@ -403,6 +427,7 @@ public class TIC_TAC extends JFrame {
                 statusLabel.setText("It's a Tie! 🤝");
                 statusLabel.setForeground(new Color(245, 158, 11)); // Yellow
                 playAgainBtn.setVisible(true);
+                goHomeBtn.setVisible(true);
             }
         }
     }
@@ -495,13 +520,18 @@ public class TIC_TAC extends JFrame {
                         myTurn = true;
                         updateStatus();
                         checkWin();
+                    } else if ("opponent_wants_rematch".equals(type)) {
+                        if (!gameActive) {
+                            statusLabel.setText("Opponent wants Rematch!");
+                            statusLabel.setForeground(new Color(139, 92, 246));
+                        }
                     } else if ("reset".equals(type)) {
                         resetBoard();
-                    } else if ("opponent_disconnected".equals(type)) {
+                    } else if ("opponent_left".equals(type) || "opponent_disconnected".equals(type)) {
                         gameActive = false;
                         statusLabel.setText("Opponent Left!");
                         statusLabel.setForeground(new Color(239, 68, 68));
-                        JOptionPane.showMessageDialog(TIC_TAC.this, "Your opponent disconnected.");
+                        JOptionPane.showMessageDialog(TIC_TAC.this, "Your opponent left the match.");
                         cardLayout.show(mainPanel, "login");
                         resetButtons();
                     }

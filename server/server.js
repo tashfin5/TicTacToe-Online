@@ -72,10 +72,25 @@ wss.on('connection', (ws) => {
             if (ws.opponent && ws.opponent.readyState === WebSocket.OPEN) {
                 ws.opponent.send(JSON.stringify({ type: 'move', position: message.position }));
             }
-        } else if (message.type === 'reset') {
+        } else if (message.type === 'play_again') {
+            ws.wantsRematch = true;
             if (ws.opponent && ws.opponent.readyState === WebSocket.OPEN) {
-                ws.opponent.send(JSON.stringify({ type: 'reset' }));
+                if (ws.opponent.wantsRematch) {
+                    ws.wantsRematch = false;
+                    ws.opponent.wantsRematch = false;
+                    
+                    ws.send(JSON.stringify({ type: 'reset' }));
+                    ws.opponent.send(JSON.stringify({ type: 'reset' }));
+                } else {
+                    ws.opponent.send(JSON.stringify({ type: 'opponent_wants_rematch' }));
+                }
             }
+        } else if (message.type === 'leave_match') {
+            if (ws.opponent && ws.opponent.readyState === WebSocket.OPEN) {
+                ws.opponent.send(JSON.stringify({ type: 'opponent_left' }));
+                ws.opponent.opponent = null;
+            }
+            ws.opponent = null;
         }
     });
 
@@ -105,6 +120,8 @@ function startGame(player1, player2) {
     player2.symbol = 'X'; 
     player1.opponent = player2;
     player2.opponent = player1;
+    player1.wantsRematch = false;
+    player2.wantsRematch = false;
 
     player1.send(JSON.stringify({
         type: 'match_found',

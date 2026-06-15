@@ -11,6 +11,7 @@ const roomCodeInput = document.getElementById('room-code-input');
 const waitingTitle = document.getElementById('waiting-title');
 const waitingSubtitle = document.getElementById('waiting-subtitle');
 const playAgainBtn = document.getElementById('play-again-btn');
+const goHomeBtn = document.getElementById('go-home-btn');
 const turnIndicator = document.getElementById('turn-indicator');
 const toast = document.getElementById('toast');
 
@@ -34,8 +35,21 @@ createRoomBtn.addEventListener('click', () => connectToServer('create_room'));
 joinRoomBtn.addEventListener('click', () => connectToServer('join_room'));
 playAgainBtn.addEventListener('click', () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'reset' }));
+        ws.send(JSON.stringify({ type: 'play_again' }));
+        playAgainBtn.innerText = 'Waiting...';
+        playAgainBtn.disabled = true;
     }
+});
+goHomeBtn.addEventListener('click', () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'leave_match' }));
+        ws.close();
+    }
+    showScreen(loginScreen);
+    connectBtn.disabled = false;
+    createRoomBtn.disabled = false;
+    joinRoomBtn.disabled = false;
+    connectBtn.innerText = 'Find Match';
 });
 
 cells.forEach(cell => {
@@ -119,11 +133,18 @@ function connectToServer(actionType) {
             showToast('Match Found!');
         } else if (data.type === 'move') {
             applyMove(data.position, false);
+        } else if (data.type === 'opponent_wants_rematch') {
+            showToast('Opponent wants to play again!');
+            if (!gameActive) {
+                turnIndicator.innerText = "Opponent wants Rematch!";
+            }
         } else if (data.type === 'reset') {
-            showToast(`${p2Name.innerText} wants to play again!`);
+            showToast(`Match restarted!`);
             resetBoard();
-        } else if (data.type === 'opponent_disconnected') {
-            showToast('Opponent disconnected!');
+            playAgainBtn.innerText = 'Play Again';
+            playAgainBtn.disabled = false;
+        } else if (data.type === 'opponent_left' || data.type === 'opponent_disconnected') {
+            showToast('Opponent left the match!');
             gameActive = false;
             turnIndicator.innerText = 'Opponent Left';
             turnIndicator.style.color = '#ef4444'; // Red
@@ -210,11 +231,13 @@ function checkWinCondition() {
             p2ScoreElem.innerText = oppScore;
         }
         playAgainBtn.classList.remove('hidden');
+        goHomeBtn.classList.remove('hidden');
     } else if (!grid.includes(null)) {
         gameActive = false;
         turnIndicator.innerText = "It's a Tie! 🤝";
         turnIndicator.style.color = '#f59e0b'; // Yellow
         playAgainBtn.classList.remove('hidden');
+        goHomeBtn.classList.remove('hidden');
     }
 }
 
@@ -222,6 +245,9 @@ function resetBoard() {
     grid = Array(9).fill(null);
     gameActive = true;
     playAgainBtn.classList.add('hidden');
+    goHomeBtn.classList.add('hidden');
+    playAgainBtn.innerText = 'Play Again';
+    playAgainBtn.disabled = false;
     
     cells.forEach(cell => {
         cell.innerText = '';
