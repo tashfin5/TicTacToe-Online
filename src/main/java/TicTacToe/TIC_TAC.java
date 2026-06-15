@@ -26,6 +26,7 @@ public class TIC_TAC extends JFrame {
     private JLabel waitTitle;
     private JLabel waitSub;
     private JLabel queueTimerLabel;
+    private RoundedButton cancelQueueBtn;
     private javax.swing.Timer queueTimer;
     private int queueSeconds = 0;
     
@@ -185,11 +186,28 @@ public class TIC_TAC extends JFrame {
         queueTimerLabel.setForeground(new Color(59, 130, 246));
         queueTimerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
+        cancelQueueBtn = new RoundedButton("Cancel", 15);
+        cancelQueueBtn.setBackground(new Color(239, 68, 68)); // Red
+        cancelQueueBtn.setForeground(Color.WHITE);
+        cancelQueueBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
+        cancelQueueBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        cancelQueueBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        cancelQueueBtn.addActionListener(e -> {
+            stopQueueTimer();
+            if (webSocket != null) {
+                webSocket.abort();
+            }
+            cardLayout.show(mainPanel, "login");
+            resetButtons();
+        });
+        
         box.add(waitTitle);
         box.add(Box.createRigidArea(new Dimension(0, 10)));
         box.add(queueTimerLabel);
         box.add(Box.createRigidArea(new Dimension(0, 10)));
         box.add(waitSub);
+        box.add(Box.createRigidArea(new Dimension(0, 20)));
+        box.add(cancelQueueBtn);
         
         p.add(box);
         return p;
@@ -408,7 +426,8 @@ public class TIC_TAC extends JFrame {
     private void resetBoard() {
         gameActive = true;
         playAgainBtn.setVisible(false);
-        goHomeBtn.setVisible(false);
+        goHomeBtn.setVisible(true);
+        goHomeBtn.setText("Leave Match");
         playAgainBtn.setText("Play Again");
         playAgainBtn.setEnabled(true);
         for (int i = 0; i < 9; i++) {
@@ -450,7 +469,7 @@ public class TIC_TAC extends JFrame {
                 oppScoreLabel.setText(String.valueOf(oppScore));
             }
             playAgainBtn.setVisible(true);
-            goHomeBtn.setVisible(true);
+            goHomeBtn.setText("Go Home");
         } else {
             boolean tie = true;
             for (String s : grid) if (s == null) tie = false;
@@ -459,7 +478,7 @@ public class TIC_TAC extends JFrame {
                 statusLabel.setText("It's a Tie! 🤝");
                 statusLabel.setForeground(new Color(245, 158, 11)); // Yellow
                 playAgainBtn.setVisible(true);
-                goHomeBtn.setVisible(true);
+                goHomeBtn.setText("Go Home");
             }
         }
     }

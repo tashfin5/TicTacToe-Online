@@ -15,6 +15,7 @@ const goHomeBtn = document.getElementById('go-home-btn');
 const turnIndicator = document.getElementById('turn-indicator');
 const toast = document.getElementById('toast');
 const queueTimerElem = document.getElementById('queue-timer');
+const cancelQueueBtn = document.getElementById('cancel-queue-btn');
 
 const p1Name = document.getElementById('p1-name');
 const p1ScoreElem = document.getElementById('p1-score');
@@ -53,6 +54,14 @@ function stopQueueTimer() {
 connectBtn.addEventListener('click', () => connectToServer('login'));
 createRoomBtn.addEventListener('click', () => connectToServer('create_room'));
 joinRoomBtn.addEventListener('click', () => connectToServer('join_room'));
+cancelQueueBtn.addEventListener('click', () => {
+    stopQueueTimer();
+    if (ws) {
+        ws.close();
+    }
+    showScreen(loginScreen);
+    resetButtons();
+});
 playAgainBtn.addEventListener('click', () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'play_again' }));
@@ -258,13 +267,13 @@ function checkWinCondition() {
             p2ScoreElem.innerText = oppScore;
         }
         playAgainBtn.classList.remove('hidden');
-        goHomeBtn.classList.remove('hidden');
+        goHomeBtn.innerText = 'Go Home';
     } else if (!grid.includes(null)) {
         gameActive = false;
         turnIndicator.innerText = "It's a Tie! 🤝";
         turnIndicator.style.color = '#f59e0b'; // Yellow
         playAgainBtn.classList.remove('hidden');
-        goHomeBtn.classList.remove('hidden');
+        goHomeBtn.innerText = 'Go Home';
     }
 }
 
@@ -272,7 +281,8 @@ function resetBoard() {
     grid = Array(9).fill(null);
     gameActive = true;
     playAgainBtn.classList.add('hidden');
-    goHomeBtn.classList.add('hidden');
+    goHomeBtn.classList.remove('hidden');
+    goHomeBtn.innerText = 'Leave Match';
     playAgainBtn.innerText = 'Play Again';
     playAgainBtn.disabled = false;
     
