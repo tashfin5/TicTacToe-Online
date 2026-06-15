@@ -18,7 +18,13 @@ public class TIC_TAC extends JFrame {
     private static final String SERVER_IP = "tictactoe-online-vx1d.onrender.com";
     
     private JTextField usernameField;
+    private JTextField roomCodeField;
     private JButton connectBtn;
+    private JButton createRoomBtn;
+    private JButton joinRoomBtn;
+    
+    private JLabel waitTitle;
+    private JLabel waitSub;
     
     private RoundedButton[] buttons = new RoundedButton[9];
     private JLabel statusLabel;
@@ -40,7 +46,7 @@ public class TIC_TAC extends JFrame {
     public TIC_TAC() {
         super("Tic Tac Toe Global");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(450, 650);
+        setSize(450, 680);
         getContentPane().setBackground(new Color(15, 23, 42));
         
         cardLayout = new CardLayout();
@@ -86,7 +92,7 @@ public class TIC_TAC extends JFrame {
         usernameField.setMaximumSize(new Dimension(300, 50));
         usernameField.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        connectBtn = new RoundedButton("Find Match", 15);
+        connectBtn = new RoundedButton("Find Random Match", 15);
         connectBtn.setBackground(new Color(139, 92, 246));
         connectBtn.setForeground(Color.WHITE);
         connectBtn.setFont(new Font("SansSerif", Font.BOLD, 16));
@@ -94,15 +100,59 @@ public class TIC_TAC extends JFrame {
         connectBtn.setMaximumSize(new Dimension(300, 45));
         connectBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         connectBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        connectBtn.addActionListener(e -> connectToServer());
+        connectBtn.addActionListener(e -> connectToServer("login"));
+
+        JLabel orLabel = new JLabel("— OR —", SwingConstants.CENTER);
+        orLabel.setForeground(new Color(255, 255, 255, 128));
+        orLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        createRoomBtn = new RoundedButton("Create Room", 15);
+        createRoomBtn.setBackground(new Color(59, 130, 246));
+        createRoomBtn.setForeground(Color.WHITE);
+        createRoomBtn.setFont(new Font("SansSerif", Font.BOLD, 16));
+        createRoomBtn.setPreferredSize(new Dimension(250, 45));
+        createRoomBtn.setMaximumSize(new Dimension(300, 45));
+        createRoomBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        createRoomBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        createRoomBtn.addActionListener(e -> connectToServer("create_room"));
+        
+        JPanel joinPanel = new JPanel();
+        joinPanel.setLayout(new BoxLayout(joinPanel, BoxLayout.X_AXIS));
+        joinPanel.setOpaque(false);
+        joinPanel.setPreferredSize(new Dimension(250, 45));
+        joinPanel.setMaximumSize(new Dimension(300, 45));
+        joinPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        roomCodeField = new JTextField();
+        roomCodeField.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(255, 255, 255, 25)), "Room Code", 0, 0, null, Color.GRAY));
+        roomCodeField.setBackground(new Color(15, 23, 42));
+        roomCodeField.setForeground(Color.WHITE);
+        roomCodeField.setCaretColor(Color.WHITE);
+        
+        joinRoomBtn = new RoundedButton("Join", 15);
+        joinRoomBtn.setBackground(new Color(16, 185, 129));
+        joinRoomBtn.setForeground(Color.WHITE);
+        joinRoomBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
+        joinRoomBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        joinRoomBtn.addActionListener(e -> connectToServer("join_room"));
+        
+        joinPanel.add(roomCodeField);
+        joinPanel.add(Box.createRigidArea(new Dimension(10, 0)));
+        joinPanel.add(joinRoomBtn);
         
         box.add(title);
         box.add(Box.createRigidArea(new Dimension(0, 5)));
         box.add(sub);
         box.add(Box.createRigidArea(new Dimension(0, 25)));
         box.add(usernameField);
-        box.add(Box.createRigidArea(new Dimension(0, 25)));
+        box.add(Box.createRigidArea(new Dimension(0, 20)));
         box.add(connectBtn);
+        box.add(Box.createRigidArea(new Dimension(0, 15)));
+        box.add(orLabel);
+        box.add(Box.createRigidArea(new Dimension(0, 15)));
+        box.add(createRoomBtn);
+        box.add(Box.createRigidArea(new Dimension(0, 10)));
+        box.add(joinPanel);
         
         p.add(box, gbc);
         return p;
@@ -117,16 +167,16 @@ public class TIC_TAC extends JFrame {
         box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
         box.setBorder(new EmptyBorder(40, 40, 40, 40));
         
-        JLabel waitLabel = new JLabel("Searching for opponent...", SwingConstants.CENTER);
-        waitLabel.setFont(new Font("SansSerif", Font.BOLD, 22));
-        waitLabel.setForeground(Color.WHITE);
-        waitLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        waitTitle = new JLabel("Searching for opponent...", SwingConstants.CENTER);
+        waitTitle.setFont(new Font("SansSerif", Font.BOLD, 22));
+        waitTitle.setForeground(Color.WHITE);
+        waitTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        JLabel waitSub = new JLabel("Please wait while we find a match.", SwingConstants.CENTER);
+        waitSub = new JLabel("Please wait while we find a match.", SwingConstants.CENTER);
         waitSub.setForeground(Color.GRAY);
         waitSub.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        box.add(waitLabel);
+        box.add(waitTitle);
         box.add(Box.createRigidArea(new Dimension(0, 10)));
         box.add(waitSub);
         
@@ -226,37 +276,49 @@ public class TIC_TAC extends JFrame {
         return p;
     }
     
-    private void connectToServer() {
+    private void resetButtons() {
+        connectBtn.setEnabled(true);
+        createRoomBtn.setEnabled(true);
+        joinRoomBtn.setEnabled(true);
+        connectBtn.setText("Find Random Match");
+    }
+
+    private void connectToServer(String actionType) {
         String user = usernameField.getText().trim();
+        String roomCode = roomCodeField.getText().trim();
         String ip = SERVER_IP;
+        
         if (user.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Enter username!");
             return;
         }
+        if (actionType.equals("join_room") && roomCode.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Enter room code!");
+            return;
+        }
         
-        connectBtn.setText("Connecting...");
         connectBtn.setEnabled(false);
+        createRoomBtn.setEnabled(false);
+        joinRoomBtn.setEnabled(false);
+        if (actionType.equals("login")) connectBtn.setText("Connecting...");
         
         try {
             HttpClient client = HttpClient.newHttpClient();
             client.newWebSocketBuilder()
-                  .buildAsync(URI.create("wss://" + ip), new WSListener())
+                  .buildAsync(URI.create("wss://" + ip), new WSListener(actionType, user, roomCode))
                   .thenAccept(ws -> {
                       this.webSocket = ws;
-                      ws.sendText("{\"type\":\"login\",\"username\":\"" + user + "\"}", true);
                   })
                   .exceptionally(ex -> {
                       SwingUtilities.invokeLater(() -> {
                           JOptionPane.showMessageDialog(this, "Connection failed!");
-                          connectBtn.setText("Find Match");
-                          connectBtn.setEnabled(true);
+                          resetButtons();
                       });
                       return null;
                   });
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Invalid server URL!");
-            connectBtn.setText("Find Match");
-            connectBtn.setEnabled(true);
+            resetButtons();
         }
     }
     
@@ -363,9 +425,25 @@ public class TIC_TAC extends JFrame {
     
     private class WSListener implements WebSocket.Listener {
         StringBuilder messageBuffer = new StringBuilder();
+        String actionType, username, roomCode;
+
+        public WSListener(String actionType, String username, String roomCode) {
+            this.actionType = actionType;
+            this.username = username;
+            this.roomCode = roomCode;
+        }
 
         @Override
         public void onOpen(WebSocket webSocket) {
+            String payload = "";
+            if (actionType.equals("login")) {
+                payload = "{\"type\":\"login\",\"username\":\"" + username + "\"}";
+            } else if (actionType.equals("create_room")) {
+                payload = "{\"type\":\"create_room\",\"username\":\"" + username + "\"}";
+            } else if (actionType.equals("join_room")) {
+                payload = "{\"type\":\"join_room\",\"username\":\"" + username + "\",\"roomCode\":\"" + roomCode + "\"}";
+            }
+            webSocket.sendText(payload, true);
             WebSocket.Listener.super.onOpen(webSocket);
         }
 
@@ -379,7 +457,18 @@ public class TIC_TAC extends JFrame {
                 SwingUtilities.invokeLater(() -> {
                     String type = extractJsonValue(msg, "type");
                     if ("waiting".equals(type)) {
+                        waitTitle.setText("Searching for opponent...");
+                        waitSub.setText("Please wait while we find a match.");
                         cardLayout.show(mainPanel, "waiting");
+                    } else if ("room_created".equals(type)) {
+                        String code = extractJsonValue(msg, "roomCode");
+                        waitTitle.setText("Room Code: " + code);
+                        waitSub.setText("Share this code with your friend!");
+                        cardLayout.show(mainPanel, "waiting");
+                    } else if ("error".equals(type)) {
+                        JOptionPane.showMessageDialog(TIC_TAC.this, extractJsonValue(msg, "message"));
+                        resetButtons();
+                        webSocket.abort();
                     } else if ("match_found".equals(type)) {
                         opponentName = extractJsonValue(msg, "opponent");
                         mySymbol = extractJsonValue(msg, "symbol");
@@ -414,8 +503,7 @@ public class TIC_TAC extends JFrame {
                         statusLabel.setForeground(new Color(239, 68, 68));
                         JOptionPane.showMessageDialog(TIC_TAC.this, "Your opponent disconnected.");
                         cardLayout.show(mainPanel, "login");
-                        connectBtn.setText("Find Match");
-                        connectBtn.setEnabled(true);
+                        resetButtons();
                     }
                 });
             }
@@ -427,8 +515,7 @@ public class TIC_TAC extends JFrame {
             SwingUtilities.invokeLater(() -> {
                 JOptionPane.showMessageDialog(TIC_TAC.this, "Disconnected from server.");
                 cardLayout.show(mainPanel, "login");
-                connectBtn.setText("Find Match");
-                connectBtn.setEnabled(true);
+                resetButtons();
             });
             return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
         }

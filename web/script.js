@@ -5,6 +5,11 @@ const gameScreen = document.getElementById('game-screen');
 const usernameInput = document.getElementById('username-input');
 const serverIpInput = document.getElementById('server-ip');
 const connectBtn = document.getElementById('connect-btn');
+const createRoomBtn = document.getElementById('create-room-btn');
+const joinRoomBtn = document.getElementById('join-room-btn');
+const roomCodeInput = document.getElementById('room-code-input');
+const waitingTitle = document.getElementById('waiting-title');
+const waitingSubtitle = document.getElementById('waiting-subtitle');
 const playAgainBtn = document.getElementById('play-again-btn');
 const turnIndicator = document.getElementById('turn-indicator');
 const toast = document.getElementById('toast');
@@ -24,7 +29,9 @@ let oppScore = 0;
 let grid = Array(9).fill(null);
 let gameActive = false;
 
-connectBtn.addEventListener('click', connectToServer);
+connectBtn.addEventListener('click', () => connectToServer('login'));
+createRoomBtn.addEventListener('click', () => connectToServer('create_room'));
+joinRoomBtn.addEventListener('click', () => connectToServer('join_room'));
 playAgainBtn.addEventListener('click', () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'reset' }));
@@ -38,12 +45,17 @@ cells.forEach(cell => {
     });
 });
 
-function connectToServer() {
+function connectToServer(actionType) {
     const username = usernameInput.value.trim();
     const serverUrl = serverIpInput.value.trim();
+    const roomCode = roomCodeInput ? roomCodeInput.value.trim() : '';
     
     if (!username) {
         showToast('Please enter a username');
+        return;
+    }
+    if (actionType === 'join_room' && !roomCode) {
+        showToast('Please enter a room code');
         return;
     }
 
@@ -54,19 +66,43 @@ function connectToServer() {
         return;
     }
 
-    connectBtn.innerText = 'Connecting...';
+    function resetButtons() {
+        connectBtn.disabled = false;
+        createRoomBtn.disabled = false;
+        joinRoomBtn.disabled = false;
+        connectBtn.innerText = 'Find Match';
+    }
+
     connectBtn.disabled = true;
+    createRoomBtn.disabled = true;
+    joinRoomBtn.disabled = true;
+    if (actionType === 'login') connectBtn.innerText = 'Connecting...';
 
     ws.onopen = () => {
-        // Send login
-        ws.send(JSON.stringify({ type: 'login', username: username }));
+        if (actionType === 'login') {
+            ws.send(JSON.stringify({ type: 'login', username: username }));
+        } else if (actionType === 'create_room') {
+            ws.send(JSON.stringify({ type: 'create_room', username: username }));
+        } else if (actionType === 'join_room') {
+            ws.send(JSON.stringify({ type: 'join_room', username: username, roomCode: roomCode }));
+        }
     };
 
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
 
         if (data.type === 'waiting') {
+            waitingTitle.innerText = "Searching for opponent...";
+            waitingSubtitle.innerText = "Please wait while we find a match.";
             showScreen(waitingScreen);
+        } else if (data.type === 'room_created') {
+            waitingTitle.innerText = `Room Code: ${data.roomCode}`;
+            waitingSubtitle.innerText = "Share this code with your friend!";
+            showScreen(waitingScreen);
+        } else if (data.type === 'error') {
+            showToast(data.message);
+            resetButtons();
+            ws.close();
         } else if (data.type === 'match_found') {
             mySymbol = data.symbol;
             isMyTurn = data.turn;
@@ -91,10 +127,9 @@ function connectToServer() {
             gameActive = false;
             turnIndicator.innerText = 'Opponent Left';
             turnIndicator.style.color = '#ef4444'; // Red
-            setTimeout(() => {
+        setTimeout(() => {
                 showScreen(loginScreen);
-                connectBtn.innerText = 'Find Match';
-                connectBtn.disabled = false;
+                resetButtons();
             }, 3000);
         }
     };
@@ -102,14 +137,12 @@ function connectToServer() {
     ws.onclose = () => {
         showToast('Disconnected from server');
         showScreen(loginScreen);
-        connectBtn.innerText = 'Find Match';
-        connectBtn.disabled = false;
+        resetButtons();
     };
 
     ws.onerror = () => {
         showToast('Connection error. Is the server running?');
-        connectBtn.innerText = 'Find Match';
-        connectBtn.disabled = false;
+        resetButtons();
     };
 }
 
