@@ -25,6 +25,9 @@ public class TIC_TAC extends JFrame {
     
     private JLabel waitTitle;
     private JLabel waitSub;
+    private JLabel queueTimerLabel;
+    private javax.swing.Timer queueTimer;
+    private int queueSeconds = 0;
     
     private RoundedButton[] buttons = new RoundedButton[9];
     private JLabel statusLabel;
@@ -177,7 +180,14 @@ public class TIC_TAC extends JFrame {
         waitSub.setForeground(Color.GRAY);
         waitSub.setAlignmentX(Component.CENTER_ALIGNMENT);
         
+        queueTimerLabel = new JLabel("00:00", SwingConstants.CENTER);
+        queueTimerLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
+        queueTimerLabel.setForeground(new Color(59, 130, 246));
+        queueTimerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
         box.add(waitTitle);
+        box.add(Box.createRigidArea(new Dimension(0, 10)));
+        box.add(queueTimerLabel);
         box.add(Box.createRigidArea(new Dimension(0, 10)));
         box.add(waitSub);
         
@@ -275,6 +285,7 @@ public class TIC_TAC extends JFrame {
         goHomeBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         goHomeBtn.setVisible(false);
         goHomeBtn.addActionListener(e -> {
+            stopQueueTimer();
             if (webSocket != null) {
                 webSocket.sendText("{\"type\":\"leave_match\"}", true);
                 webSocket.abort();
@@ -301,6 +312,27 @@ public class TIC_TAC extends JFrame {
         createRoomBtn.setEnabled(true);
         joinRoomBtn.setEnabled(true);
         connectBtn.setText("Find Random Match");
+    }
+
+    private void startQueueTimer() {
+        queueSeconds = 0;
+        queueTimerLabel.setText("00:00");
+        if (queueTimer != null) {
+            queueTimer.stop();
+        }
+        queueTimer = new Timer(1000, e -> {
+            queueSeconds++;
+            int m = queueSeconds / 60;
+            int s = queueSeconds % 60;
+            queueTimerLabel.setText(String.format("%02d:%02d", m, s));
+        });
+        queueTimer.start();
+    }
+
+    private void stopQueueTimer() {
+        if (queueTimer != null) {
+            queueTimer.stop();
+        }
     }
 
     private void connectToServer(String actionType) {
@@ -484,17 +516,21 @@ public class TIC_TAC extends JFrame {
                     if ("waiting".equals(type)) {
                         waitTitle.setText("Searching for opponent...");
                         waitSub.setText("Please wait while we find a match.");
+                        startQueueTimer();
                         cardLayout.show(mainPanel, "waiting");
                     } else if ("room_created".equals(type)) {
                         String code = extractJsonValue(msg, "roomCode");
                         waitTitle.setText("Room Code: " + code);
                         waitSub.setText("Share this code with your friend!");
+                        startQueueTimer();
                         cardLayout.show(mainPanel, "waiting");
                     } else if ("error".equals(type)) {
+                        stopQueueTimer();
                         JOptionPane.showMessageDialog(TIC_TAC.this, extractJsonValue(msg, "message"));
                         resetButtons();
                         webSocket.abort();
                     } else if ("match_found".equals(type)) {
+                        stopQueueTimer();
                         opponentName = extractJsonValue(msg, "opponent");
                         mySymbol = extractJsonValue(msg, "symbol");
                         myTurn = "true".equals(extractJsonValue(msg, "turn"));
@@ -543,6 +579,7 @@ public class TIC_TAC extends JFrame {
         @Override
         public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
             SwingUtilities.invokeLater(() -> {
+                stopQueueTimer();
                 JOptionPane.showMessageDialog(TIC_TAC.this, "Disconnected from server.");
                 cardLayout.show(mainPanel, "login");
                 resetButtons();

@@ -14,6 +14,7 @@ const playAgainBtn = document.getElementById('play-again-btn');
 const goHomeBtn = document.getElementById('go-home-btn');
 const turnIndicator = document.getElementById('turn-indicator');
 const toast = document.getElementById('toast');
+const queueTimerElem = document.getElementById('queue-timer');
 
 const p1Name = document.getElementById('p1-name');
 const p1ScoreElem = document.getElementById('p1-score');
@@ -30,6 +31,25 @@ let oppScore = 0;
 let grid = Array(9).fill(null);
 let gameActive = false;
 
+let queueTimerInterval;
+let queueSeconds = 0;
+
+function startQueueTimer() {
+    queueSeconds = 0;
+    queueTimerElem.innerText = '00:00';
+    clearInterval(queueTimerInterval);
+    queueTimerInterval = setInterval(() => {
+        queueSeconds++;
+        const m = String(Math.floor(queueSeconds / 60)).padStart(2, '0');
+        const s = String(queueSeconds % 60).padStart(2, '0');
+        queueTimerElem.innerText = `${m}:${s}`;
+    }, 1000);
+}
+
+function stopQueueTimer() {
+    clearInterval(queueTimerInterval);
+}
+
 connectBtn.addEventListener('click', () => connectToServer('login'));
 createRoomBtn.addEventListener('click', () => connectToServer('create_room'));
 joinRoomBtn.addEventListener('click', () => connectToServer('join_room'));
@@ -41,6 +61,7 @@ playAgainBtn.addEventListener('click', () => {
     }
 });
 goHomeBtn.addEventListener('click', () => {
+    stopQueueTimer();
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'leave_match' }));
         ws.close();
@@ -108,16 +129,20 @@ function connectToServer(actionType) {
         if (data.type === 'waiting') {
             waitingTitle.innerText = "Searching for opponent...";
             waitingSubtitle.innerText = "Please wait while we find a match.";
+            startQueueTimer();
             showScreen(waitingScreen);
         } else if (data.type === 'room_created') {
             waitingTitle.innerText = `Room Code: ${data.roomCode}`;
             waitingSubtitle.innerText = "Share this code with your friend!";
+            startQueueTimer();
             showScreen(waitingScreen);
         } else if (data.type === 'error') {
+            stopQueueTimer();
             showToast(data.message);
             resetButtons();
             ws.close();
         } else if (data.type === 'match_found') {
+            stopQueueTimer();
             mySymbol = data.symbol;
             isMyTurn = data.turn;
             
@@ -156,12 +181,14 @@ function connectToServer(actionType) {
     };
 
     ws.onclose = () => {
+        stopQueueTimer();
         showToast('Disconnected from server');
         showScreen(loginScreen);
         resetButtons();
     };
 
     ws.onerror = () => {
+        stopQueueTimer();
         showToast('Connection error. Is the server running?');
         resetButtons();
     };
