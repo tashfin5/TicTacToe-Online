@@ -15,7 +15,7 @@ public class TIC_TAC extends JFrame {
     
     // IMPORTANT: Change this to your hosted server URL once you host it online!
     // Example: "tictactoe-server.onrender.com"
-    private static final String SERVER_IP = "localhost:7517";
+    private static final String SERVER_IP = "tictactoe-online-vx1d.onrender.com";
     
     private JTextField usernameField;
     private JButton connectBtn;
@@ -240,7 +240,7 @@ public class TIC_TAC extends JFrame {
         try {
             HttpClient client = HttpClient.newHttpClient();
             client.newWebSocketBuilder()
-                  .buildAsync(URI.create("ws://" + ip), new WSListener())
+                  .buildAsync(URI.create("wss://" + ip), new WSListener())
                   .thenAccept(ws -> {
                       this.webSocket = ws;
                       ws.sendText("{\"type\":\"login\",\"username\":\"" + user + "\"}", true);

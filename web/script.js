@@ -48,7 +48,7 @@ function connectToServer() {
     }
 
     try {
-        ws = new WebSocket(`ws://${serverUrl}`);
+        ws = new WebSocket(`wss://${serverUrl}`);
     } catch (e) {
         showToast('Invalid Server IP');
         return;
