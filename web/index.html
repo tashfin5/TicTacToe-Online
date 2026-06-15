@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe Global</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-animation"></div>
+    
+    <div class="container">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="glass-panel">
+                <h1>Tic Tac Toe</h1>
+                <p>Play globally against anyone.</p>
+                <input type="text" id="username-input" placeholder="Enter your username" autocomplete="off" />
+                <input type="hidden" id="server-ip" value="localhost:7517" />
+                <button id="connect-btn" class="glow-btn">Find Match</button>
+            </div>
+        </div>
+
+        <!-- Waiting Screen -->
+        <div id="waiting-screen" class="screen">
+            <div class="glass-panel">
+                <div class="loader"></div>
+                <h2>Searching for opponent...</h2>
+                <p>Please wait while we find a match.</p>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="glass-panel game-panel">
+                <div class="scoreboard">
+                    <div class="player player1">
+                        <span id="p1-name">You</span>
+                        <span id="p1-symbol">(O)</span>
+                        <div class="score" id="p1-score">0</div>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="player player2">
+                        <span id="p2-name">Opponent</span>
+                        <span id="p2-symbol">(X)</span>
+                        <div class="score" id="p2-score">0</div>
+                    </div>
+                </div>
+
+                <div id="turn-indicator" class="turn-indicator">Your Turn!</div>
+
+                <div class="tic-tac-grid" id="grid">
+                    <button class="cell" data-index="0"></button>
+                    <button class="cell" data-index="1"></button>
+                    <button class="cell" data-index="2"></button>
+                    <button class="cell" data-index="3"></button>
+                    <button class="cell" data-index="4"></button>
+                    <button class="cell" data-index="5"></button>
+                    <button class="cell" data-index="6"></button>
+                    <button class="cell" data-index="7"></button>
+                    <button class="cell" data-index="8"></button>
+                </div>
+                
+                <div class="controls">
+                    <button id="play-again-btn" class="glow-btn secondary hidden">Play Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
